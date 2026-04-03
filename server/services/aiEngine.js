@@ -107,7 +107,7 @@ Output JSON only.`;
 function enforceHelpfulStyle(result) {
   if (!result || typeof result.response !== 'string') return result;
 
-  const response = result.response.trim();
+  const response = normalizeSupportText(result.response);
   if (!response) return result;
 
   const hasEmpathy = /\b(sorry|understand|frustrating|troubling|happy to help|i can help)\b/i.test(response);
@@ -133,6 +133,56 @@ function enforceHelpfulStyle(result) {
 
   result.response = parts.join(' ').replace(/\s+/g, ' ').trim();
   return result;
+}
+
+function normalizeSupportText(text) {
+  const cleaned = String(text || '')
+    .replace(/[^\x20-\x7E\n]/g, ' ')
+    .replace(/\r/g, '')
+    .trim();
+
+  if (!cleaned) return '';
+
+  const lines = cleaned
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const intro = [];
+  const steps = [];
+  const followUp = [];
+
+  for (const line of lines) {
+    if (/^\d+\./.test(line)) {
+      steps.push(line.replace(/^\d+\.\s*/, '').trim());
+      continue;
+    }
+
+    if (/^[*-]\s*/.test(line)) {
+      steps.push(line.replace(/^[*-]\s*/, '').trim());
+      continue;
+    }
+
+    if (/if .*still|if none of these|if it'?s been more|would you like|stay connected/i.test(line)) {
+      followUp.push(line);
+      continue;
+    }
+
+    intro.push(line);
+  }
+
+  const parts = [];
+  if (intro.length) {
+    parts.push(intro.join(' '));
+  }
+  if (steps.length) {
+    parts.push(`Please try these steps: ${steps.join('; ')}.`);
+  }
+  if (followUp.length) {
+    parts.push(followUp.join(' '));
+  }
+
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
 }
 
 function parseAIResponse(text) {
