@@ -267,4 +267,4 @@ async function processMessage(userMessage, conversationHistory = []) {
   return enforceHelpfulStyle(fallbackResult);
 }
 
-module.exports = { processMessage };
+module.exports = { processMessage, enforceHelpfulStyle };

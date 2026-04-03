@@ -2,7 +2,7 @@ const express = require('express');
 const ChatSession = require('../models/ChatSession');
 const Ticket = require('../models/Ticket');
 const mongoose = require('mongoose');
-const { processMessage } = require('../services/aiEngine');
+const { processMessage, enforceHelpfulStyle } = require('../services/aiEngine');
 const { matchFAQ } = require('../services/faqMatcher');
 const { classifyFallback } = require('../services/fallback');
 const memoryStore = require('../services/memoryStore');
@@ -236,6 +236,7 @@ router.post('/message', async (req, res) => {
         suggestedReplies: ['Thanks, that helped!', 'I still need help', 'Talk to a human'],
         sentimentScore: 0.6,
       };
+      aiResult = enforceHelpfulStyle(aiResult);
     } else {
       try {
         aiResult = await processMessage(message, session.history);
