@@ -12,25 +12,38 @@ function hasDb() {
   return mongoose.connection.readyState === 1;
 }
 
+async function findDemoAgent(email, password) {
+  const demoAgents = await getDemoAgents();
+  const agent = demoAgents.find((entry) => entry.email === email);
+  if (!agent) return null;
+
+  const isMatch = await bcrypt.compare(password, agent.passwordHash);
+  if (!isMatch) return null;
+  return agent;
+}
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
 
-    let agent;
+    let agent = null;
+
     if (hasDb()) {
-      agent = await Agent.findOne({ email });
-      if (!agent) return res.status(401).json({ error: 'Invalid credentials.' });
+      const dbAgent = await Agent.findOne({ email });
+      if (dbAgent) {
+        const isMatch = await bcrypt.compare(password, dbAgent.password);
+        if (!isMatch) return res.status(401).json({ error: 'Invalid credentials.' });
+        agent = dbAgent;
+      }
+    }
 
-      const isMatch = await bcrypt.compare(password, agent.password);
-      if (!isMatch) return res.status(401).json({ error: 'Invalid credentials.' });
-    } else {
-      const demoAgents = await getDemoAgents();
-      agent = demoAgents.find((entry) => entry.email === email);
-      if (!agent) return res.status(401).json({ error: 'Invalid credentials.' });
+    if (!agent) {
+      agent = await findDemoAgent(email, password);
+    }
 
-      const isMatch = await bcrypt.compare(password, agent.passwordHash);
-      if (!isMatch) return res.status(401).json({ error: 'Invalid credentials.' });
+    if (!agent) {
+      return res.status(401).json({ error: 'Invalid credentials.' });
     }
 
     const token = jwt.sign(
