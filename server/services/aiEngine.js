@@ -28,6 +28,17 @@ const SYSTEM_PROMPT = `You are SmartDesk AI, a high-skill customer support copil
 
 Your replies must feel sharper and more useful than a generic chatbot.
 Think like an experienced L1/L2 support specialist before you answer.
+Every visible reply must follow this support style:
+1. Start with one brief empathetic sentence.
+2. Explain one likely reason or most probable cause.
+3. Give practical next steps in simple language.
+4. Ask for more details only if they are truly needed to continue.
+
+Preferred reply pattern:
+- "I'm sorry you're dealing with this."
+- "This may be happening because ..."
+- "Please try these steps: ..."
+- "If needed, share ... and I'll continue helping."
 
 Your hidden workflow for every message:
 1. Identify the real issue category.
@@ -52,13 +63,17 @@ Return ONLY valid JSON using this exact schema:
 }
 
 Quality rules:
+- Always include brief empathy in the first sentence.
 - Never respond with empty empathy or vague reassurance.
 - Always include either a concrete next troubleshooting step, a likely cause, or one focused follow-up question.
 - If details are missing, ask only ONE question that gives the highest-value missing detail.
 - Prefer high-signal support questions like exact error message, when it started, what changed, what was already tried, which account or transaction, and current impact.
 - If the issue is resolvable, solve it directly with practical steps.
 - If the issue needs escalation, explain what will happen next in one sentence and keep collecting critical context when needed.
-- Keep the reply concise, but make it feel expert and actionable.
+- Keep the reply concise, but make it feel expert, actionable, and user-friendly.
+- Avoid robotic wording, bullet spam, or generic chatbot phrases.
+- Suggested steps should be specific enough that a real user can follow them immediately.
+- Only ask for details when those details will directly change the next action.
 
 Detail collection rules:
 - For unresolved issues, detailsGathered stays false until you know enough to create a strong ticket handoff.
@@ -88,6 +103,37 @@ Language rules:
 - JSON keys stay in English.
 
 Output JSON only.`;
+
+function enforceHelpfulStyle(result) {
+  if (!result || typeof result.response !== 'string') return result;
+
+  const response = result.response.trim();
+  if (!response) return result;
+
+  const hasEmpathy = /\b(sorry|understand|frustrating|troubling|happy to help|i can help)\b/i.test(response);
+  const hasCause = /\b(because|may be|might be|could be|likely|usually happens when)\b/i.test(response);
+  const hasAction = /\b(try|please|check|reset|verify|review|open|follow|use|go to|share|provide)\b/i.test(response);
+
+  const parts = [];
+
+  if (hasEmpathy) {
+    parts.push(response);
+  } else {
+    parts.push(`I'm sorry you're dealing with this.`);
+    parts.push(response);
+  }
+
+  if (!hasCause && result.summary) {
+    parts.splice(1, 0, `This may be happening because of ${result.summary.toLowerCase()}.`);
+  }
+
+  if (!hasAction) {
+    parts.push(`Please try the suggested steps and let me know if you'd like me to continue.`);
+  }
+
+  result.response = parts.join(' ').replace(/\s+/g, ' ').trim();
+  return result;
+}
 
 function parseAIResponse(text) {
   let cleaned = text.trim();
@@ -133,7 +179,7 @@ function parseAIResponse(text) {
     parsed.sentimentScore = emotionScores[parsed.emotion] || 0.5;
   }
 
-  return parsed;
+  return enforceHelpfulStyle(parsed);
 }
 
 function buildReasoningFrame(userMessage, conversationHistory) {
@@ -218,7 +264,7 @@ async function processMessage(userMessage, conversationHistory = []) {
   const fallbackResult = classifyFallback(userMessage);
   fallbackResult.suggestedReplies = fallbackResult.suggestedReplies || ['Tell me more', 'Share the error', 'Talk to support'];
   fallbackResult.sentimentScore = fallbackResult.sentimentScore || 0.5;
-  return fallbackResult;
+  return enforceHelpfulStyle(fallbackResult);
 }
 
 module.exports = { processMessage };
