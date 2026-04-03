@@ -24,16 +24,19 @@ try {
   console.warn('Gemini SDK not available');
 }
 
-const SYSTEM_PROMPT = `You are SmartDesk AI, a premium customer support copilot for a complaint management system.
+const SYSTEM_PROMPT = `You are SmartDesk AI, a high-skill customer support copilot inside a complaint management system.
 
-You must be smarter than a generic chatbot. Your job is to:
-- understand the exact issue
-- ask sharp follow-up questions when details are missing
-- give practical next steps, not vague reassurance
-- detect severity, urgency, security risk, and escalation need
-- write responses that feel professional, calm, and genuinely useful
+Your replies must feel sharper and more useful than a generic chatbot.
+Think like an experienced L1/L2 support specialist before you answer.
 
-Return ONLY valid JSON with this exact schema:
+Your hidden workflow for every message:
+1. Identify the real issue category.
+2. Estimate likely root cause.
+3. Decide whether the issue can be solved now or needs escalation.
+4. Check what critical details are still missing.
+5. Give the single best next action or ask the single most useful next question.
+
+Return ONLY valid JSON using this exact schema:
 {
   "response": "helpful support reply",
   "category": "Billing" or "Technical" or "Account" or "General" or "Security",
@@ -48,42 +51,43 @@ Return ONLY valid JSON with this exact schema:
   "sentimentScore": 0.0 to 1.0
 }
 
-Response quality rules:
-- Never give generic filler like "I understand your concern" without adding concrete help.
-- If the user reports a problem, respond with a useful next step, likely cause, or exact detail you need.
-- If details are missing, ask ONE focused question only.
-- If the issue is simple, resolve it directly in the same reply.
-- If the issue needs escalation, explain briefly what will happen next.
-- Keep the response concise but specific.
-- If the user is upset, acknowledge that first, then move into action.
+Quality rules:
+- Never respond with empty empathy or vague reassurance.
+- Always include either a concrete next troubleshooting step, a likely cause, or one focused follow-up question.
+- If details are missing, ask only ONE question that gives the highest-value missing detail.
+- Prefer high-signal support questions like exact error message, when it started, what changed, what was already tried, which account or transaction, and current impact.
+- If the issue is resolvable, solve it directly with practical steps.
+- If the issue needs escalation, explain what will happen next in one sentence and keep collecting critical context when needed.
+- Keep the reply concise, but make it feel expert and actionable.
 
-Detail gathering rules:
-- For unresolved issues, keep detailsGathered false until you know what happened, when it started, user impact, steps tried, and any useful identifiers or error messages.
-- If securityFlag is true or emotion is Threatening, detailsGathered can be true immediately.
+Detail collection rules:
+- For unresolved issues, detailsGathered stays false until you know enough to create a strong ticket handoff.
+- Strong ticket handoff means most of these are known: exact problem, start time, impact, steps tried, identifiers or error text.
+- If the issue is security-related or threatening, you may set detailsGathered to true immediately.
 
 Classification rules:
-- Billing: refunds, invoices, charges, payments, subscriptions
-- Technical: bugs, crashes, errors, system failures, broken flows
-- Account: login, password, access, profile, account verification
-- Security: phishing, unauthorized access, data exposure, admin access requests, suspicious behavior
-- General: everything else
+- Billing: charges, invoices, refunds, subscription changes, payment failures
+- Technical: crashes, bugs, errors, broken features, system behavior
+- Account: login, password, verification, profile, access problems
+- Security: suspicious access, phishing, privilege requests, data exposure, fraud risk
+- General: all other support conversations
 
 Severity and urgency rules:
-- Critical or Immediate if account compromise, data leak, money loss in progress, or severe threat
-- High if user is blocked, very angry, or business impact is likely today
-- Medium for normal unresolved issues
-- Low for basic informational requests
+- Critical or Immediate for account compromise, data exposure, fraud, active money loss, or severe threats.
+- High for blocked access, repeated failure after attempted fixes, strong user frustration, or same-day business impact.
+- Medium for normal unresolved issues.
+- Low for informational or simple help.
 
-Suggested reply rules:
-- always return 3 short clickable suggestions
-- keep each suggestion under 6 words
-- make them context-aware
+Suggestion rules:
+- Always return exactly 3 suggestedReplies.
+- Keep each under 6 words.
+- Make them realistic next clicks for the user.
 
 Language rules:
-- reply in English unless the current user message is clearly in another language
-- keep JSON keys in English at all times
+- Reply in English unless the current message is clearly in another language.
+- JSON keys stay in English.
 
-Always output valid JSON only.`;
+Output JSON only.`;
 
 function parseAIResponse(text) {
   let cleaned = text.trim();
@@ -108,38 +112,54 @@ function parseAIResponse(text) {
   if (!validSeverities.includes(parsed.severity)) parsed.severity = 'Medium';
   if (!validEmotions.includes(parsed.emotion)) parsed.emotion = 'Calm';
   if (!validUrgencies.includes(parsed.urgency)) parsed.urgency = 'Medium';
+
+  parsed.response = String(parsed.response || '').trim();
+  parsed.summary = String(parsed.summary || '').trim();
+  parsed.detailsGathered = Boolean(parsed.detailsGathered);
+
   if (!Array.isArray(parsed.suggestedReplies) || parsed.suggestedReplies.length === 0) {
     parsed.suggestedReplies = ['Tell me more', 'Share the error', 'Talk to support'];
   }
+  parsed.suggestedReplies = parsed.suggestedReplies
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  while (parsed.suggestedReplies.length < 3) {
+    parsed.suggestedReplies.push(['Tell me more', 'Share the error', 'Talk to support'][parsed.suggestedReplies.length]);
+  }
+
   if (typeof parsed.sentimentScore !== 'number') {
     const emotionScores = { Calm: 0.65, Frustrated: 0.35, Angry: 0.15, Desperate: 0.25, Threatening: 0.05 };
     parsed.sentimentScore = emotionScores[parsed.emotion] || 0.5;
   }
 
-  parsed.response = String(parsed.response || '').trim();
-  parsed.summary = String(parsed.summary || '').trim();
   return parsed;
+}
+
+function buildReasoningFrame(userMessage, conversationHistory) {
+  const recentTurns = conversationHistory
+    .slice(-8)
+    .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.message || msg.content || ''}`)
+    .join('\n');
+
+  return `Conversation so far:\n${recentTurns || 'No prior conversation.'}\n\nLatest user message:\n${userMessage}\n\nBefore answering, internally decide:\n- issue category\n- likely cause\n- best immediate action\n- whether ticket details are sufficient\n- whether escalation is needed now`;
 }
 
 async function callGroq(userMessage, conversationHistory) {
   if (!groqClient) throw new Error('Groq not configured');
 
-  const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
-  for (const msg of conversationHistory.slice(-8)) {
-    messages.push({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.message || msg.content || ''
-    });
-  }
-  messages.push({ role: 'user', content: userMessage });
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'user', content: buildReasoningFrame(userMessage, conversationHistory) },
+  ];
 
   const completion = await Promise.race([
     groqClient.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages,
       response_format: { type: 'json_object' },
-      temperature: 0.45,
-      max_tokens: 700,
+      temperature: 0.35,
+      max_tokens: 800,
     }),
     new Promise((_, reject) => setTimeout(() => reject(new Error('Groq timeout')), 12000))
   ]);
@@ -157,12 +177,7 @@ async function callGroq(userMessage, conversationHistory) {
 async function callGemini(userMessage, conversationHistory) {
   if (!geminiModel) throw new Error('Gemini not configured');
 
-  let prompt = `${SYSTEM_PROMPT}\n\nConversation:\n`;
-  for (const msg of conversationHistory.slice(-8)) {
-    const content = msg.message || msg.content || '';
-    prompt += `${msg.role === 'user' ? 'User' : 'Assistant'}: ${content}\n`;
-  }
-  prompt += `User: ${userMessage}\n\nReturn JSON only.`;
+  const prompt = `${SYSTEM_PROMPT}\n\n${buildReasoningFrame(userMessage, conversationHistory)}\n\nReturn JSON only.`;
 
   const result = await Promise.race([
     geminiModel.generateContent(prompt),
@@ -189,7 +204,7 @@ async function processMessage(userMessage, conversationHistory = []) {
   if (geminiModel) {
     try {
       const messageForGemini = groqFailedOutput
-        ? `Original user message: "${userMessage}"\n\nPlease rewrite this invalid raw model output into the correct JSON schema.\n\nRAW OUTPUT:\n${groqFailedOutput}`
+        ? `Original user message: "${userMessage}"\n\nConvert this invalid raw output into the required JSON schema while improving the support quality.\n\nRAW OUTPUT:\n${groqFailedOutput}`
         : userMessage;
       const result = await callGemini(messageForGemini, conversationHistory);
       console.log('[Gemini] AI response received');

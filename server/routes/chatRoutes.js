@@ -60,21 +60,31 @@ async function buildAgentBriefing(session, aiResult) {
     .map((entry) => `${entry.role === 'user' ? 'Customer' : 'AI'}: ${entry.message || entry.content || ''}`)
     .join('\n');
 
-  const briefingPrompt = `You are a support team lead. Based on this conversation, write a concise but comprehensive agent briefing.
+  const briefingPrompt = `You are a senior escalation manager writing a premium handoff note for a human support agent.
+
+Your note must be clear enough that the next agent can act immediately without rereading the whole chat.
 
 Customer: ${session.name} (${session.email})
-Category: ${aiResult.category} | Severity: ${aiResult.severity} | Emotion: ${aiResult.emotion}
+Category: ${aiResult.category}
+Severity: ${aiResult.severity}
+Emotion: ${aiResult.emotion}
+Urgency: ${aiResult.urgency}
+Security Flag: ${aiResult.securityFlag ? 'Yes' : 'No'}
+AI Summary: ${aiResult.summary}
 
 Conversation:
 ${transcriptText}
 
-Write a briefing in this format (plain text, no JSON, no markdown):
-ISSUE: [one-sentence description]
-DETAILS: [what happened, when, and the impact]
-CUSTOMER MOOD: [emotional state and how to approach]
-STEPS TRIED: [what the customer already attempted]
-RECOMMENDED ACTION: [specific next steps for the agent]
-PRIORITY NOTES: [any urgency or special handling needed]`;
+Write plain text only in exactly this structure:
+ISSUE: one-sentence statement of the exact customer problem
+ROOT CAUSE SIGNALS: likely cause or strongest clues from the conversation
+DETAILS CONFIRMED: bullet-like sentence with facts already known
+DETAILS MISSING: the highest-value missing details still needed
+CUSTOMER IMPACT: what is blocked, at risk, or time-sensitive
+CUSTOMER MOOD: how the customer is feeling and how the agent should respond
+RECOMMENDED NEXT ACTION: the best immediate action for the next agent
+ESCALATION REASON: why this should not stay with the bot
+PRIORITY NOTES: risk, urgency, SLA, or security considerations`;
 
   try {
     if (process.env.GROQ_API_KEY) {
@@ -83,8 +93,8 @@ PRIORITY NOTES: [any urgency or special handling needed]`;
       const completion = await groq.chat.completions.create({
         model: 'llama-3.3-70b-versatile',
         messages: [{ role: 'user', content: briefingPrompt }],
-        temperature: 0.3,
-        max_tokens: 400,
+        temperature: 0.2,
+        max_tokens: 500,
       });
 
       return completion.choices[0].message.content.trim();
@@ -93,7 +103,7 @@ PRIORITY NOTES: [any urgency or special handling needed]`;
     console.warn('Agent briefing generation failed:', error.message);
   }
 
-  return `Issue: ${aiResult.summary}\nSeverity: ${aiResult.severity}\nEmotion: ${aiResult.emotion}`;
+  return `ISSUE: ${aiResult.summary}\nROOT CAUSE SIGNALS: Needs deeper agent review.\nDETAILS CONFIRMED: Severity ${aiResult.severity}, emotion ${aiResult.emotion}.\nDETAILS MISSING: Exact timeline, impact, and error specifics if not already captured.\nCUSTOMER IMPACT: User needs human support.\nCUSTOMER MOOD: ${aiResult.emotion}.\nRECOMMENDED NEXT ACTION: Review transcript and continue troubleshooting.\nESCALATION REASON: Bot could not safely resolve.\nPRIORITY NOTES: ${aiResult.urgency} urgency.`;
 }
 
 async function createEscalationTicket(session, aiResult, io) {
