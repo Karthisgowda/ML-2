@@ -1,0 +1,167 @@
+.topBar {
+  position: fixed;
+  top: 10px;
+  right: 14px;
+  z-index: 10;
+}
+
+.page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+}
+
+.card {
+  background: rgba(255,255,255,0.55);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255,255,255,0.85);
+  border-radius: 28px;
+  padding: 2.75rem 2.25rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.08),
+    0 2px 8px rgba(0,0,0,0.04),
+    inset 0 1px 0 rgba(255,255,255,0.9);
+  animation: fadeUp 0.7s cubic-bezier(0.25,0.46,0.45,0.94) both;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.card:hover {
+  box-shadow: 0 16px 48px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9);
+  transform: translateY(-2px);
+}
+[data-theme="dark"] .card {
+  background: rgba(28,28,30,0.82);
+  border-color: rgba(255,255,255,0.1);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.logoMark {
+  width: 52px; height: 52px;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.9);
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 1.5rem;
+  box-shadow: 0 4px 16px rgba(96,165,250,0.2);
+}
+[data-theme="dark"] .logoMark {
+  background: rgba(44,44,46,0.8);
+  border-color: rgba(255,255,255,0.1);
+}
+
+.title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  text-align: center;
+  margin-bottom: 0.35rem;
+  color: var(--text);
+}
+
+.sub {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 2rem;
+  letter-spacing: -0.022em;
+}
+
+.form { display: flex; flex-direction: column; gap: 0.875rem; }
+
+.fieldWrap { display: flex; flex-direction: column; gap: 0.35rem; }
+
+.fieldLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+.form input {
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(0,0,0,0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.form input:focus {
+  background: rgba(255,255,255,0.95);
+  border-color: var(--blue);
+  box-shadow: 0 0 0 4px var(--blue-light);
+}
+[data-theme="dark"] .form input {
+  background: rgba(44,44,46,0.8);
+  border-color: rgba(255,255,255,0.12);
+}
+[data-theme="dark"] .form input:focus {
+  background: rgba(58,58,60,0.95);
+}
+
+.error {
+  display: flex; align-items: center; gap: 0.4rem;
+  color: #ff3b30;
+  font-size: 0.875rem;
+  background: rgba(255,59,48,0.08);
+  border: 1px solid rgba(255,59,48,0.18);
+  border-radius: 10px;
+  padding: 0.65rem 0.9rem;
+  font-weight: 500;
+}
+
+.submitBtn {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--blue-hover) 100%);
+  color: #fff;
+  padding: 0.9rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 14px;
+  width: 100%;
+  margin-top: 0.25rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+  letter-spacing: -0.022em;
+  box-shadow: 0 4px 16px rgba(0,113,227,0.3);
+  transition: all 0.22s cubic-bezier(0.25,0.46,0.45,0.94);
+}
+.submitBtn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(0,113,227,0.42);
+}
+.submitBtn:active:not(:disabled) { transform: translateY(0); }
+
+.hint {
+  margin-top: 1.25rem;
+  padding: 0.875rem 1rem;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.8);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+[data-theme="dark"] .hint {
+  background: rgba(44,44,46,0.6);
+  border-color: rgba(255,255,255,0.08);
+}
+.hint strong { color: var(--text); font-weight: 600; display: block; margin-bottom: 0.2rem; }
+.hint code {
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  background: rgba(0,0,0,0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+[data-theme="dark"] .hint code { background: rgba(255,255,255,0.1); }
+
+.back { margin-top: 1.5rem; font-size: 0.875rem; color: var(--text-secondary); text-align: center; }

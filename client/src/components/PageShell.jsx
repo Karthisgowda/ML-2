@@ -1,0 +1,15 @@
+import styles from './PageShell.module.css'
+
+export default function PageShell({ children }) {
+  return (
+    <div className={styles.shell}>
+      {/* Animated light orbs — same on every page */}
+      <div className={`${styles.orb} ${styles.orb1}`} />
+      <div className={`${styles.orb} ${styles.orb2}`} />
+      <div className={`${styles.orb} ${styles.orb3}`} />
+      <div className={`${styles.orb} ${styles.orb4}`} />
+      <div className={`${styles.orb} ${styles.orb5}`} />
+      <div className={styles.content}>{children}</div>
+    </div>
+  )
+}

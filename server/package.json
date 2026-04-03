@@ -1,0 +1,26 @@
+{
+  "name": "smart-complaint-backend",
+  "version": "1.0.0",
+  "description": "Backend for P4 Smart Complaint System - Team 80 Spark",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "npx nodemon server.js",
+    "seed": "node scripts/seedAgents.js"
+  },
+  "keywords": [],
+  "author": "Team Spark",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.6.2",
+    "groq-sdk": "^1.1.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.3.1",
+    "socket.io": "^4.8.3"
+  }
+}
