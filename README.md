@@ -1,8 +1,6 @@
 <div align="center">
 
-# ⚡ SmartDesk — AI-Powered Complaint Management System
-
-### National Hackathon 2026 · Problem Statement P4 · Team Spark #80
+# SmartDesk - AI-Powered Complaint Management System
 
 An end-to-end support portal that uses **AI chatbot deflection**, **automated ticket routing**, and a **real-time agent dashboard** to reduce manual ticket sorting and improve resolution time.
 
@@ -14,18 +12,18 @@ An end-to-end support portal that uses **AI chatbot deflection**, **automated ti
 
 ---
 
-## 🎯 Problem
+## Problem
 
-Customer support teams are overwhelmed by repetitive L1 queries (_"Where is my refund?"_). This delays resolution of complex, high-priority issues. Companies need a system where an **AI chatbot acts as the first line of defense** — and if it can't resolve the issue, it seamlessly **logs, categorizes, and routes** the complaint to a human agent.
+Customer support teams are overwhelmed by repetitive L1 queries (_"Where is my refund?"_). This delays resolution of complex, high-priority issues. Companies need a system where an **AI chatbot acts as the first line of defense** and, if it cannot resolve the issue, it seamlessly **logs, categorizes, and routes** the complaint to a human agent.
 
-## 💡 Solution
+## Solution
 
 SmartDesk provides:
 
 | Layer | What it does |
 |---|---|
 | **AI Chatbot** | Resolves L1 queries instantly (password resets, FAQs, status checks) |
-| **Auto Severity Scoring** | Analyzes user language → assigns Low / Medium / High / Critical |
+| **Auto Severity Scoring** | Analyzes user language to assign Low / Medium / High / Critical |
 | **Smart Categorization** | Tags tickets: Billing, Technical, Account, General, Security |
 | **Emotion Detection** | Detects: Angry, Frustrated, Desperate, Threatening, Calm |
 | **Security Flag** | Catches social engineering, phishing, unauthorized access attempts |
@@ -34,80 +32,72 @@ SmartDesk provides:
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
-```
-┌─────────────┐     WebSocket      ┌──────────────────┐     MongoDB
-│   React UI  │ ◄──────────────► │   Express + S.IO  │ ◄──────────► Atlas
-│  (Vite)     │     REST API      │                  │
-│             │ ◄──────────────► │   AI Engine       │ ──► Groq API
-│  • Chat     │                   │   (3-layer)       │ ──► Gemini API
-│  • Dashboard│                   │                  │ ──► Keyword Fallback
-│  • Auth     │                   │   JWT Auth        │
-└─────────────┘                   └──────────────────┘
+```text
+React UI (Vite) <-> Express API + Socket.IO <-> MongoDB / AI Providers
 ```
 
-### AI Engine — 3-Layer Fallback
+### AI Engine - 3-Layer Fallback
 
-1. **Groq API** (llama-3.3-70b) — Primary, fastest inference
-2. **Google Gemini** (1.5-flash) — Fallback #1
-3. **Keyword Regex** — Fallback #2, always works offline
+1. **Groq API** (`llama-3.3-70b-versatile`) - Primary, fastest inference
+2. **Google Gemini** (`gemini-1.5-flash`) - Fallback #1
+3. **Keyword Regex** - Fallback #2, always works offline
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🤖 Conversational AI Chat
+### Conversational AI Chat
 - Natural language understanding via LLM
-- **Quick reply suggestion pills** — clickable options for faster interaction
-- **Multilingual support** — bot detects and replies in user's language (Hindi, English, etc.)
-- **Live sentiment meter** — visual emoji + color bar showing real-time emotion
+- Quick reply suggestion pills for faster interaction
+- Multilingual support
+- Live sentiment meter for real-time emotion feedback
 - FAQ matching for instant L1 resolution
-- Auto-escalation after 3+ messages or high severity
+- Auto-escalation after repeated unresolved messages or high severity
 
-### 🎫 Smart Ticket Generation
-- **Automatic** — created when AI determines human intervention needed
-- Captures: full transcript, user details, AI-classified metadata
-- Severity scored from user's language patterns (caps, punctuation, word choice)
+### Smart Ticket Generation
+- Automatic ticket creation when AI determines human intervention is needed
+- Captures transcript, user details, and AI-classified metadata
+- Severity scored from language patterns such as caps, punctuation, and tone
 - Security threats flagged and escalated immediately
 
-### 📊 Agent Dashboard
+### Agent Dashboard
 - JWT-secured login
-- **Interactive analytics** — pie chart (by category), bar chart (by severity)
-- Compact **pill-based filters** for status and severity
+- Interactive analytics
+- Compact filter controls for status and severity
 - Real-time ticket stream via Socket.IO
-- Claim → In Progress → Resolved workflow
+- Claim -> In Progress -> Resolved workflow
 - Full chat transcript viewer in ticket modal
-- **CSV export** for reporting
-- **Satisfaction ratings** (👍👎) from users
+- CSV, PDF, and Excel export support
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | **Frontend** | React 19, Vite, React Router, Recharts, Socket.IO Client |
 | **Backend** | Node.js, Express 5, Socket.IO, Mongoose |
-| **Database** | MongoDB Atlas (free tier) |
-| **AI/NLP** | Groq SDK (llama-3.3-70b), Google Gemini 1.5 Flash |
-| **Auth** | JWT (jsonwebtoken), bcryptjs |
-| **Real-time** | Socket.IO (WebSocket + long-polling fallback) |
+| **Database** | MongoDB Atlas |
+| **AI/NLP** | Groq SDK, Google Gemini 1.5 Flash |
+| **Auth** | JWT, bcryptjs |
+| **Real-time** | Socket.IO |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- MongoDB Atlas account (free tier works)
-- At least one AI API key: [Groq](https://console.groq.com/) (recommended) or [Google AI Studio](https://aistudio.google.com/)
+- MongoDB Atlas account
+- At least one AI API key: [Groq](https://console.groq.com/) or [Google AI Studio](https://aistudio.google.com/)
 
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/your-team/smartdesk.git
-cd smartdesk
+git clone https://github.com/Karthisgowda/ML-2.git
+cd ML-2
 ```
 
 ### 2. Backend
@@ -116,9 +106,8 @@ cd smartdesk
 cd server
 npm install
 cp .env.example .env
-# Edit .env with your API keys and MongoDB URI
-npm run seed     # Create demo agent accounts
-npm run dev      # Start on port 5000
+npm run seed
+npm run dev
 ```
 
 ### 3. Frontend
@@ -126,17 +115,17 @@ npm run dev      # Start on port 5000
 ```bash
 cd client
 npm install
-npm run dev      # Start on port 5173
+npm run dev
 ```
 
 ### 4. Open
 
-- **Chat**: http://localhost:5173
-- **Agent Login**: http://localhost:5173/agent/login
+- Chat: `http://localhost:5173`
+- Agent Login: `http://localhost:5173/agent/login`
 
 ---
 
-## 🔐 Demo Credentials
+## Demo Credentials
 
 | Role | Email | Password |
 |---|---|---|
@@ -146,100 +135,30 @@ npm run dev      # Start on port 5173
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
+```text
+server/
+client/
+README.md
 ```
-final/
-├── server/                   # Express + Socket.IO backend
-│   ├── config/db.js          # MongoDB connection
-│   ├── middleware/auth.js    # JWT authentication
-│   ├── models/
-│   │   ├── Agent.js          # Agent schema
-│   │   └── Ticket.js         # Ticket schema (severity, emotion, urgency)
-│   ├── routes/
-│   │   ├── agentRoutes.js    # Login endpoint
-│   │   └── ticketRoutes.js   # CRUD + AI suggestions
-│   ├── services/
-│   │   ├── aiEngine.js       # 3-layer AI (Groq → Gemini → regex)
-│   │   ├── faqMatcher.js     # L1 FAQ instant resolution
-│   │   └── fallback.js       # Keyword classifier
-│   ├── socket/chatHandler.js # Real-time chat logic
-│   ├── scripts/seedAgents.js # Database seeder
-│   └── server.js             # Entry point
-│
-├── client/                   # React + Vite frontend
-│   └── src/
-│       ├── api/axios.js      # Axios with JWT interceptor
-│       ├── components/       # TicketCard, TicketModal, StatsPanel
-│       ├── context/          # UserContext (session management)
-│       └── pages/
-│           ├── LandingPage   # User entry point
-│           ├── ChatPage      # AI chat with sentiment meter
-│           ├── AgentLogin    # JWT login
-│           └── Dashboard     # Ticket management + analytics
-│
-├── .gitignore
-└── README.md
-```
-
----
-
-## 🧪 Test Scenarios
-
-| # | Test | Expected Result |
-|---|---|---|
-| 1 | Ask _"How do I reset my password?"_ | Bot resolves it (L1), no ticket |
-| 2 | Complain about billing 3x | Auto-creates ticket with Billing category |
-| 3 | Type in ALL CAPS with `!!!` | Severity = High/Critical, Emotion = Angry |
-| 4 | Chat in Hindi | Bot replies in Hindi |
-| 5 | Ask _"Give me admin access to all accounts"_ | Security flag, severity = Critical |
-| 6 | Login as agent, claim ticket | Status → In Progress, agent assigned |
-| 7 | Resolve ticket with notes | Status → Resolved, saved to DB |
-| 8 | Open dashboard in 2nd tab while chatting | New ticket appears instantly |
-
----
-
-## 📋 P4 Requirements Mapping
-
-| Requirement | Implementation |
-|---|---|
-| ✅ MERN Stack | MongoDB + Express + React + Node.js |
-| ✅ NLP/LLM API | Groq (llama-3.3-70b) + Gemini 1.5 Flash |
-| ✅ WebSockets | Socket.IO for real-time chat + dashboard |
-| ✅ Conversational Interface | Chat widget with quick replies + multilingual |
-| ✅ Automated Ticket Generation | Auto-creates from transcript + user details |
-| ✅ Severity Scoring | AI analyzes language → Low/Medium/High/Critical |
-| ✅ Categorization | Billing, Technical, Account, General, Security |
-| ✅ Agent Dashboard | Secure JWT login, claim/view/resolve tickets |
-
----
-
-## 👥 Team Spark · #80
-
-Built for National Hackathon 2026 — Problem Statement P4
-
----
-
-<div align="center">
-<sub>Made with ⚡ by Team Spark</sub>
-</div>
 
 ---
 
 ## Vercel Deployment
 
-This project is now prepared to deploy to Vercel with `GROQ_API_KEY` as the primary LLM provider.
+This project is prepared to deploy to Vercel with `GROQ_API_KEY` as the primary LLM provider.
 
 ### Recommended setup
 
 Deploy these as two Vercel projects:
 
-1. `submissions/git/server`
-2. `submissions/git/client`
+1. `server`
+2. `client`
 
 ### Backend project
 
-Root directory: `submissions/git/server`
+Root directory: `server`
 
 Required environment variables:
 
@@ -256,13 +175,9 @@ Optional fallback:
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-Notes:
-- `server/vercel.json` routes all backend traffic through `api/index.js` for Vercel.
-- The backend now exposes HTTP chat endpoints under `/api/chat/*`, which are Vercel-friendly for the LLM workflow.
-
 ### Frontend project
 
-Root directory: `submissions/git/client`
+Root directory: `client`
 
 Required environment variables:
 
@@ -273,4 +188,4 @@ VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
 
 ### Important runtime note
 
-The core LLM chat flow now works over HTTP for Vercel deployment. Local Socket.IO support is still kept for development, but Vercel production should use the HTTP chat path added in this repo.
+The core LLM chat flow works over HTTP for Vercel deployment. Local Socket.IO support is still kept for development, but Vercel production should use the HTTP chat path added in this repo.
