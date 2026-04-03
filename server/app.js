@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 const connectDB = require('./config/db');
 
 dotenv.config();
@@ -26,8 +27,8 @@ app.use('/api/chat', chatRoutes);
 app.get('/', (req, res) => {
   res.json({
     message: 'Smart Complaint System API is running',
-    team: 'Spark #80',
     provider: process.env.GROQ_API_KEY ? 'groq' : process.env.GEMINI_API_KEY ? 'gemini' : 'fallback',
+    dbConnected: mongoose.connection.readyState === 1,
   });
 });
 
@@ -35,6 +36,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     provider: process.env.GROQ_API_KEY ? 'groq' : process.env.GEMINI_API_KEY ? 'gemini' : 'fallback',
+    dbConnected: mongoose.connection.readyState === 1,
   });
 });
 
