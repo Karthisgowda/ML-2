@@ -14,7 +14,7 @@ An end-to-end support portal that uses **AI chatbot deflection**, **automated ti
 
 ## Problem
 
-Customer support teams are overwhelmed by repetitive L1 queries (_"Where is my refund?"_). This delays resolution of complex, high-priority issues. Companies need a system where an **AI chatbot acts as the first line of defense** and, if it cannot resolve the issue, it seamlessly **logs, categorizes, and routes** the complaint to a human agent.
+Customer support teams are overwhelmed by repetitive L1 queries (_"Where is my refund?"_). This delays resolution of complex, high-priority issues. Companies need a system where an **AI chatbot acts as the first line of defense** and, if it cannot resolve the issue, it seamlessly **logs, categorizes, and routes** the complaint to a human agent
 
 ## Solution
 
