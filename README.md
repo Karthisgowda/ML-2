@@ -190,6 +190,14 @@ VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
 
 The core LLM chat flow works over HTTP for Vercel deployment. Local Socket.IO support is still kept for development, but Vercel production should use the HTTP chat path added in this repo.
 
+## Project Highlights
+
+- Built with a scalable client-server architecture for real-time support operations
+- Integrates AI-driven ticket analysis with automated escalation workflows
+- Designed to reduce manual support effort and improve response efficiency
+- Supports secure agent authentication and live complaint monitoring
+- Optimized for modern deployment platforms including Vercel and MongoDB Atlas
+
 ## Contributor
 
 This project was collaboratively worked on and maintained with contributions in frontend improvements, documentation updates, and project enhancement support.
