@@ -2,7 +2,7 @@
 
 # SmartDesk - AI-Powered Complaint Management System
 
-An end-to-end support portal that uses **AI chatbot deflection**, **automated ticket routing**, and a **real-time agent dashboard** to reduce manual ticket sorting and improve resolution time.
+An end-to-end support portal that uses **AI chatbot deflection**, **automated ticket routing**, and a **real-time agent dashboard** to reduce manual ticket sorting and improve resolution time
 
 [![Tech Stack](https://img.shields.io/badge/Stack-MERN-00d9ff?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![AI](https://img.shields.io/badge/AI-LLM_API-ff6b6b?style=for-the-badge&logo=openai&logoColor=white)](https://console.groq.com/)
