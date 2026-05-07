@@ -189,3 +189,7 @@ VITE_GOOGLE_CLIENT_ID=your_google_oauth_client_id
 ### Important runtime note
 
 The core LLM chat flow works over HTTP for Vercel deployment. Local Socket.IO support is still kept for development, but Vercel production should use the HTTP chat path added in this repo.
+
+## Contributor
+
+This project was collaboratively worked on and maintained with contributions in frontend improvements, documentation updates, and project enhancement support.
