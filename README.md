@@ -165,69 +165,6 @@ SmartDesk flags security-risk conversations through both the LLM classification 
 
 This is implemented for signals such as suspicious access requests, phishing, bypass attempts, exploit language, SQL-related attack terms, and unauthorized privilege requests.
 
-## Real-Time Ticket Workflow
-
-The backend includes a Socket.IO server in `server/server.js` and Socket.IO handlers in `server/socket/chatHandler.js`.
-
-Implemented Socket.IO events include:
-
-| Event | Direction | Purpose |
-| --- | --- | --- |
-| `agent_join` | Agent client to server | Joins the dashboard room named `agents`. |
-| `new_ticket` | Server to agents | Broadcasts newly escalated tickets. |
-| `ticket_updated` | Server to agents | Broadcasts status, assignment, transcript, or note updates. |
-| `agent_direct_message` | Agent client to server | Sends a direct agent reply to a user's room and appends it to the transcript/session. |
-| `user_join` | User client to server | Legacy/socket chat path for joining a personal user room. |
-| `user_message` / `send_message` | User client to server | Legacy/socket chat path for AI processing. |
-| `bot_message` | Server to user | Sends AI or agent messages to the user socket. |
-| `ticket_created` | Server to user | Notifies the user socket when a ticket is created. |
-
-The current React chat page uses the HTTP chat endpoint (`/api/chat/message`). The agent dashboard uses Socket.IO for live ticket updates.
-
-```mermaid
-sequenceDiagram
-  participant User as Customer UI
-  participant API as Express API
-  participant DB as MongoDB / Memory Store
-  participant IO as Socket.IO
-  participant Agent as Agent Dashboard
-
-  Agent->>IO: agent_join
-  IO-->>Agent: joins agents room
-  User->>API: POST /api/chat/message
-  API->>API: FAQ / AI / fallback processing
-  API->>DB: create ticket when escalation is needed
-  API->>IO: emit new_ticket to agents room
-  IO-->>Agent: new_ticket
-  Agent->>API: PUT /api/tickets/:id
-  API->>DB: update ticket
-  API->>IO: emit ticket_updated
-  IO-->>Agent: ticket_updated
-```
-
-## Ticket Lifecycle
-
-```mermaid
-flowchart TD
-  A[Customer starts chat] --> B[AI attempts resolution]
-  B --> C{Resolved?}
-  C -- Yes --> D[Chat continues or ends without ticket]
-  C -- No --> E{Escalation criteria met?}
-  E -- No --> F[Ask focused follow-up question]
-  F --> B
-  E -- Yes --> G[Create open ticket]
-  G --> H[Broadcast to agent dashboard]
-  H --> I[Agent claims ticket]
-  I --> J[Status: in-progress]
-  J --> K[Agent reviews transcript and briefing]
-  K --> L[Agent adds direct reply or resolution notes]
-  L --> M{Resolved?}
-  M -- No --> J
-  M -- Yes --> N[Status: resolved]
-  G --> O[Customer may cancel]
-  O --> P[Status: closed]
-```
-
 ## Authentication and Authorization Flow
 
 SmartDesk has two authentication paths:
@@ -236,83 +173,6 @@ SmartDesk has two authentication paths:
 | --- | --- |
 | Customer | Google OAuth redirect or guest name/email entry. Customer identity is stored in `sessionStorage` for the frontend flow. Google users receive a backend JWT stored in `sessionStorage` as `token`. |
 | Agent | Email/password login through `/api/agents/login`. Passwords are compared with bcrypt hashes. A JWT is stored in `localStorage` as `agentToken`. Protected agent API calls use `Authorization: Bearer <token>`. |
-
-```mermaid
-flowchart TD
-  A[Visitor opens SmartDesk] --> B{Customer or Agent?}
-  B -- Customer --> C{Google login?}
-  C -- Yes --> D[Redirect to Google OAuth]
-  D --> E[Fetch Google user profile]
-  E --> F[POST /api/auth/google]
-  F --> G[Find or create User]
-  G --> H[Issue customer JWT]
-  C -- No --> I[Store guest name and email in sessionStorage]
-  H --> J[Open My Tickets / Chat]
-  I --> J
-  B -- Agent --> K[POST /api/agents/login]
-  K --> L[Verify bcrypt password from MongoDB or demo memory agents]
-  L --> M[Issue 8-hour JWT]
-  M --> N[Store agentToken in localStorage]
-  N --> O[Protected agent dashboard]
-  O --> P[Bearer token sent to protected ticket APIs]
-```
-
-## System Architecture
-
-```mermaid
-flowchart LR
-  subgraph Client[React + Vite Client]
-    LP[Landing Page]
-    Chat[Chat Page]
-    Mine[My Tickets]
-    Login[Agent Login]
-    Dash[Agent Dashboard]
-  end
-
-  subgraph Server[Node.js + Express Server]
-    Auth[Auth Routes]
-    ChatAPI[Chat Routes]
-    TicketAPI[Ticket Routes]
-    AgentAPI[Agent Routes]
-    Socket[Socket.IO Server]
-    AI[AI Engine]
-    FAQ[FAQ Matcher]
-    Fallback[Keyword Fallback]
-  end
-
-  subgraph Data[Persistence]
-    Mongo[(MongoDB)]
-    Memory[In-Memory Demo Store]
-  end
-
-  subgraph Providers[External Providers]
-    Google[Google OAuth / UserInfo]
-    Groq[Groq LLM]
-    Gemini[Google Gemini]
-  end
-
-  LP --> Google
-  LP --> Auth
-  Chat --> ChatAPI
-  Mine --> TicketAPI
-  Login --> AgentAPI
-  Dash --> TicketAPI
-  Dash --> Socket
-  Auth --> Mongo
-  AgentAPI --> Mongo
-  AgentAPI --> Memory
-  ChatAPI --> FAQ
-  ChatAPI --> AI
-  AI --> Groq
-  AI --> Gemini
-  AI --> Fallback
-  ChatAPI --> Mongo
-  ChatAPI --> Memory
-  TicketAPI --> Mongo
-  TicketAPI --> Memory
-  TicketAPI --> Socket
-  Socket --> Dash
-```
 
 ## Detailed Tech Stack
 
@@ -338,57 +198,20 @@ flowchart LR
 | Offline fallback | Local keyword classifier |
 | Deployment config | Separate Vercel configs for `client` and `server` |
 
-## API Overview
-
-<details open>
-<summary><strong>Public and Customer APIs</strong></summary>
-
-| Method | Endpoint | Auth | Description |
-| --- | --- | --- | --- |
-| `GET` | `/` | No | API status with selected AI provider and database connection state. |
-| `GET` | `/api/health` | No | Health response with provider and database status. |
-| `POST` | `/api/auth/google` | No | Verifies Google profile/token, creates or finds a user, and returns a backend JWT. |
-| `GET` | `/api/chat/session?email=<email>` | No | Loads chat session messages and initial suggestions. |
-| `POST` | `/api/chat/message` | No | Processes a customer message, returns AI metadata, and may create a ticket. |
-| `POST` | `/api/chat/session/clear` | No | Clears the chat session for an email. |
-| `GET` | `/api/tickets/user/:email` | No | Lists tickets for a customer email. |
-| `PUT` | `/api/tickets/user/:id/cancel` | Customer email in body | Closes a customer-owned ticket if it is not resolved or closed. |
-
-</details>
-
-<details open>
-<summary><strong>Agent APIs</strong></summary>
-
-| Method | Endpoint | Auth | Description |
-| --- | --- | --- | --- |
-| `POST` | `/api/agents/login` | No | Agent login with email/password. Returns an 8-hour JWT. |
-| `GET` | `/api/tickets` | Agent JWT | Lists tickets with optional `status`, `severity`, `category`, `emotion`, and `urgency` filters. |
-| `GET` | `/api/tickets/stats/overview` | Agent JWT | Returns dashboard counts. Implemented in backend, while the current dashboard computes stats client-side. |
-| `GET` | `/api/tickets/suggestion/:id` | Agent JWT | Generates or returns suggested resolution guidance for a ticket. |
-| `GET` | `/api/tickets/:id` | Agent JWT | Gets one ticket by Mongo `_id` or `ticketId`. |
-| `PUT` | `/api/tickets/:id` | Agent JWT | Updates status, assigned agent, and resolution notes. |
-
-</details>
-
 ## Environment Variables
 
-### Backend: `server/.env`
+### Backend (`server/.env`)
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| `PORT` | No | Local backend port. Defaults to `5000`. |
-| `MONGO_URI` | Recommended | MongoDB connection string. Without it, the server continues with reduced in-memory functionality. |
-| `GROQ_API_KEY` | Optional | Enables the primary Groq LLM workflow. |
-| `GEMINI_API_KEY` | Optional | Enables Gemini as an AI fallback provider. |
-| `GOOGLE_CLIENT_ID` | Required for Google login | Google OAuth client ID used for token verification. |
-| `JWT_SECRET` | Recommended | Secret for signing customer and agent JWTs. Fallback secrets exist for demos but should not be used in production. |
-
+```env
+MONGO_URI=your_mongodb_uri
+GROQ_API_KEY=your_groq_key
+JWT_SECRET=your_secret
+```
 ### Frontend: `client/.env`
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `VITE_API_URL` | Yes | Backend API base URL, for example `http://localhost:5000`. |
-| `VITE_GOOGLE_CLIENT_ID` | Required for Google login | Google OAuth client ID exposed to the frontend. |
+```
+VITE_API_URL=http://localhost:5000
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+```
 
 ## Setup and Installation
 
@@ -443,179 +266,6 @@ npm run dev
 ```
 
 Open the Vite URL shown in the terminal, usually `http://localhost:5173`.
-
-## Demo Credentials
-
-These demo agents are available through the in-memory fallback and can also be seeded into MongoDB:
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Agent | `rakesh@smartdesk.dev` | `agent123` |
-| Agent | `ujjwal@smartdesk.dev` | `agent123` |
-| Agent | `adi@smartdesk.dev` | `agent123` |
-
-The seed script also creates:
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Agent | `agent1@support.com` | `password123` |
-| Agent | `agent2@support.com` | `password123` |
-
-## Deployment Guide
-
-The project includes separate Vercel configurations for the frontend and backend.
-
-### Frontend Deployment
-
-- Vercel root directory: `client`
-- Build command: `npm run build`
-- Output directory: `dist`
-- Required environment variables:
-
-```env
-VITE_API_URL=https://your-backend-url
-VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-```
-
-The frontend `vercel.json` rewrites all routes to `index.html` for React Router support.
-
-### Backend Deployment
-
-- Vercel root directory: `server`
-- Entry point: `api/index.js`
-- Required environment variables:
-
-```env
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_secure_jwt_secret
-GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-GROQ_API_KEY=your_groq_api_key
-GEMINI_API_KEY=your_optional_gemini_key
-```
-
-Important note: `server/server.js` starts the HTTP server and Socket.IO for local development. The Vercel backend entry point exports the Express app from `server/api/index.js`, so HTTP APIs work in that deployment shape. For production-grade Socket.IO, deploy the backend on a long-running Node host that supports WebSockets, or keep realtime behavior local/development-only.
-
-## Project Structure
-
-```text
-Chat-agent/
-|-- .gitignore
-|-- README.md
-|-- client/
-|   |-- .env.example
-|   |-- .gitignore
-|   |-- eslint.config.js
-|   |-- index.html
-|   |-- package-lock.json
-|   |-- package.json
-|   |-- vercel.json
-|   |-- vite.config.js
-|   |-- public/
-|   |   |-- favicon.svg
-|   |   `-- icons.svg
-|   `-- src/
-|       |-- App.css
-|       |-- App.jsx
-|       |-- index.css
-|       |-- main.jsx
-|       |-- api/
-|       |   `-- axios.js
-|       |-- assets/
-|       |   |-- hero.png
-|       |   |-- react.svg
-|       |   `-- vite.svg
-|       |-- components/
-|       |   |-- Logo.jsx
-|       |   |-- PageShell.jsx
-|       |   |-- PageShell.module.css
-|       |   |-- ProtectedRoute.jsx
-|       |   |-- StatsPanel.jsx
-|       |   |-- StatsPanel.module.css
-|       |   |-- ThemeToggle.jsx
-|       |   |-- ThemeToggle.module.css
-|       |   |-- TicketCard.jsx
-|       |   |-- TicketCard.module.css
-|       |   |-- TicketModal.jsx
-|       |   `-- TicketModal.module.css
-|       |-- context/
-|       |   |-- ThemeContext.jsx
-|       |   `-- UserContext.jsx
-|       `-- pages/
-|           |-- AgentLogin.jsx
-|           |-- AgentLogin.module.css
-|           |-- ChatPage.jsx
-|           |-- ChatPage.module.css
-|           |-- Dashboard.jsx
-|           |-- Dashboard.module.css
-|           |-- LandingPage.jsx
-|           |-- LandingPage.module.css
-|           |-- MyTickets.jsx
-|           `-- MyTickets.module.css
-`-- server/
-    |-- .env.example
-    |-- .gitignore
-    |-- app.js
-    |-- package-lock.json
-    |-- package.json
-    |-- server.js
-    |-- vercel.json
-    |-- api/
-    |   `-- index.js
-    |-- config/
-    |   `-- db.js
-    |-- middleware/
-    |   `-- auth.js
-    |-- models/
-    |   |-- Agent.js
-    |   |-- ChatSession.js
-    |   |-- Ticket.js
-    |   `-- User.js
-    |-- routes/
-    |   |-- agentRoutes.js
-    |   |-- authRoutes.js
-    |   |-- chatRoutes.js
-    |   `-- ticketRoutes.js
-    |-- scripts/
-    |   `-- seedAgents.js
-    |-- services/
-    |   |-- aiEngine.js
-    |   |-- fallback.js
-    |   |-- faqMatcher.js
-    |   `-- memoryStore.js
-    `-- socket/
-        `-- chatHandler.js
-```
-
-## Screenshots
-
-Add screenshots to this section after capturing the running app.
-
-| Screen | Preview |
-| --- | --- |
-| Landing Page | `screenshots/landing-page.png` |
-| Customer Chat | `screenshots/customer-chat.png` |
-| My Tickets | `screenshots/my-tickets.png` |
-| Agent Login | `screenshots/agent-login.png` |
-| Agent Dashboard | `screenshots/agent-dashboard.png` |
-| Ticket Modal | `screenshots/ticket-modal.png` |
-
-## Future Improvements
-
-- Use the existing `/api/tickets/suggestion/:id` endpoint directly in the ticket modal.
-- Add persistent customer-to-agent realtime chat in the current HTTP-based chat page.
-- Add role-based authorization beyond the current agent JWT check.
-- Add password reset and account management for agents.
-- Add automated tests for AI fallback classification, ticket escalation, and protected routes.
-- Add production WebSocket hosting for realtime dashboard updates outside local Node runtime.
-- Add notification channels such as email or SMS for ticket status changes.
-- Add SLA timers and assignment queues for agent workload management.
-
-## Contributors
-
-| Name | Role |
-| --- | --- |
-| Team Spark | Project team |
-| Add contributor name | Add role or contribution |
 
 ## License
 
