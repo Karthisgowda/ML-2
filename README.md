@@ -2,7 +2,7 @@
 
 # SmartDesk
 
-### AI-Powered Complaint Management and Support Ticket Platform
+An end-to-end support portal that uses **AI chatbot deflection**, **automated ticket routing**, and a **real-time agent dashboard** to reduce manual ticket sorting and improve resolution time
 
 SmartDesk is a full-stack support portal that combines an AI-first customer chat experience, automatic ticket escalation, severity classification, security-risk detection, and a real-time agent dashboard.
 
